@@ -17,7 +17,7 @@ const args = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 const PORT = Number(process.argv.find((a) => a.startsWith('--port='))?.split('=')[1] || 3080)
 const SRC = path.resolve(args[0] || path.join(process.env.HOME || process.env.USERPROFILE, 'deepseek-harness'))
 const DEST = path.resolve(args[1] || path.join(__dirname, '..', 'resources', 'harness'))
-const MAX_ROUNDS = 40
+const MAX_ROUNDS = 80
 
 const HOIST_SRC = path.join(SRC, 'node_modules', '.pnpm', 'node_modules')
 

@@ -52,6 +52,9 @@ jobs:
         run: corepack pnpm --filter @deepseek-ai/dsh deploy --prod --legacy resources/harness
         working-directory: dsh-src
 
+      - name: Fill missing packages (static)
+        run: node scripts/fill-harness.mjs dsh-src dsh-src/resources/harness
+
       - name: Fix up missing packages (converge)
         run: |
           node scripts/fixup-harness.mjs dsh-src dsh-src/resources/harness --port=3088
