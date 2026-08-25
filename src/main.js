@@ -7,6 +7,13 @@ const fs = require('fs')
 const PORT = 3080
 const BASE_URL = `http://127.0.0.1:${PORT}`
 const READY_TIMEOUT_MS = 120_000
+const LOG_FILE = path.join(app.getPath('logs'), 'dsh-box.log')
+
+function log(msg) {
+  try {
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`)
+  } catch {}
+}
 
 let splash = null
 let mainWin = null
@@ -51,19 +58,40 @@ function waitForReady(deadline) {
   })
 }
 
+function nodeBinary() {
+  const base = app.isPackaged
+    ? path.join(process.resourcesPath, 'runtime')
+    : null
+  if (base) {
+    const p = path.join(base, 'node')
+    if (fs.existsSync(p)) return p
+  }
+  return null // 回退到 ELECTRON_RUN_AS_NODE（开发模式，机器上有 node）
+}
+
 function startServer() {
   const entry = harnessEntry()
+  log(`启动内核: ${entry}`)
   if (!fs.existsSync(entry)) throw new Error(`未找到 Harness 内核: ${entry}`)
-  serverProc = spawn(process.execPath, [entry, 'web'], {
+  const nodeBin = nodeBinary()
+  const useRealNode = !!nodeBin
+  serverProc = spawn(nodeBin || process.execPath, [entry, 'web'], {
     cwd: harnessRoot(),
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    env: useRealNode
+      ? { ...process.env }
+      : { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let recent = ''
   serverProc.stdout.on('data', (d) => { recent = (recent + d).slice(-4000) })
-  serverProc.stderr.on('data', (d) => { recent = (recent + d).slice(-4000) })
-  serverProc.on('exit', (code) => {
+  serverProc.stderr.on('data', (d) => {
+    recent = (recent + d).slice(-4000)
+    const s = d.toString()
+    if (/Error|error|EADDR/.test(s)) log(`内核stderr: ${s.slice(0, 300)}`)
+  })
+  serverProc.on('exit', (code, signal) => {
     serverProc = null
+    log(`内核退出 code=${code} sig=${signal} 最近输出: ${recent.slice(-600)}`)
     if (!quitting && code && code !== 0 && mainWin && !mainWin.isDestroyed()) {
       mainWin.webContents.executeJavaScript(
         `document.title='DSH 内核已退出(${code})'`,
@@ -116,12 +144,14 @@ function createMain() {
 }
 
 async function bootstrap() {
+  log('bootstrap 开始')
   progress(8, '准备内核…')
   try {
     const alreadyUp = await probeHealthy()
     if (!alreadyUp) {
       progress(20, '启动 DeepSeek Harness 内核…')
       startServer()
+      log(`内核进程已拉起 pid=${serverProc.pid}`)
       let p = 20
       const poll = setInterval(() => {
         p = Math.min(p + 3, 78)
@@ -159,6 +189,7 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
+    log('app ready，创建启动窗口')
     createSplash()
     bootstrap()
   })

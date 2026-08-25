@@ -19,23 +19,16 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 corepack pnpm --filter @deepseek-ai/dsh deploy --prod --legacy "$DEST"
 
-# --prod 部署可能遗漏部分 workspace/vendor 包（如 cordis-plugin-group），
-# 用源仓库的解析层补全，保证运行时与源码环境等价：
-SRC_NM="$SRC/node_modules"
-DEST_NM="$DEST/node_modules"
-if [[ -d "$SRC_NM/.pnpm/node_modules" ]]; then
-  echo "==> 补全隐藏 hoist 解析层（解引用，避免悬空链接）…"
-  mkdir -p "$DEST_NM/.pnpm/node_modules"
-  rsync -aL --ignore-existing "$SRC_NM/.pnpm/node_modules/" "$DEST_NM/.pnpm/node_modules/"
+echo "==> 部署完成 ($(du -sh "$DEST" | cut -f1))，在沙箱副本中收敛修复缺失包…"
+# 在与打包环境等价的中立位置收敛（避免部署树依赖源仓库的相对符号链接）
+SANDBOX="$(mktemp -d /tmp/dsh-box-sandbox.XXXXXX)"
+cp -R "$DEST" "$SANDBOX/harness"
+if zsh "$ROOT/scripts/fixup-harness.zsh" "$SRC" "$SANDBOX/harness"; then
+  rm -rf "$DEST"
+  mv "$SANDBOX/harness" "$DEST"
+  echo "==> 沙箱验证通过，已换入 $DEST"
+  rm -rf "$SANDBOX"
+else
+  echo "!! 沙箱收敛失败，保留原树并保留沙箱供排查: $SANDBOX"
+  exit 1
 fi
-if [[ -d "$SRC_NM/@deepseek-ai" ]]; then
-  echo "==> 补全顶层 @deepseek-ai 链接（解引用）…"
-  mkdir -p "$DEST_NM/@deepseek-ai"
-  for d in "$SRC_NM/@deepseek-ai"/*(N); do
-    name="$(basename "$d")"
-    [[ -e "$DEST_NM/@deepseek-ai/$name" ]] || cp -RL "$d" "$DEST_NM/@deepseek-ai/$name"
-  done
-fi
-
-echo ""
-echo "==> 部署完成 → $DEST ($(du -sh "$DEST" | cut -f1))"

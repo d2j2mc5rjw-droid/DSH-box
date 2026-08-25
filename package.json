@@ -22,15 +22,12 @@
     "directories": {
       "output": "release"
     },
+    "afterPack": "scripts/afterpack.cjs",
     "files": [
       "src/**/*",
       "package.json"
     ],
     "extraResources": [
-      {
-        "from": "resources/harness",
-        "to": "harness"
-      },
       {
         "from": "build/icon.icns",
         "to": "icon.icns"
