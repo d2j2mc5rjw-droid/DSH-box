@@ -45,7 +45,7 @@ jobs:
       - name: Install & build harness
         working-directory: dsh-src
         run: |
-          corepack pnpm install
+          corepack pnpm install --no-frozen-lockfile
           corepack pnpm run build
 
       - name: Deploy production harness tree

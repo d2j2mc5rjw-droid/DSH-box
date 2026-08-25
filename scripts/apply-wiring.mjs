@@ -8,10 +8,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 const root = process.argv[2] || process.cwd()
 const repo = path.resolve(root)
-const vendor = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'vendor')
+const vendor = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'vendor')
 
 function exists(p) { return fs.existsSync(p) }
 
