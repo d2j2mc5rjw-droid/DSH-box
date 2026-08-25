@@ -53,7 +53,11 @@ jobs:
         working-directory: dsh-src
 
       - name: Fix up missing packages (converge)
-        run: node scripts/fixup-harness.mjs dsh-src resources/harness --port=3088
+        run: |
+          node scripts/fixup-harness.mjs dsh-src dsh-src/resources/harness --port=3088
+          rm -rf resources
+          mkdir -p resources
+          mv dsh-src/resources/harness resources/harness
 
       - name: Install app dependencies
         run: npm install
