@@ -19,7 +19,10 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 corepack pnpm --filter @deepseek-ai/dsh deploy --prod --legacy "$DEST"
 
-echo "==> 部署完成 ($(du -sh "$DEST" | cut -f1))，在沙箱副本中收敛修复缺失包…"
+echo "==> 部署完成 ($(du -sh "$DEST" | cut -f1))，静态全量补齐缺失包…"
+node "$ROOT/scripts/fill-harness.mjs" "$SRC" "$DEST"
+
+echo "==> 在沙箱副本中收敛验证…"
 # 在与打包环境等价的中立位置收敛（避免部署树依赖源仓库的相对符号链接）
 SANDBOX="$(mktemp -d /tmp/dsh-box-sandbox.XXXXXX)"
 cp -R "$DEST" "$SANDBOX/harness"

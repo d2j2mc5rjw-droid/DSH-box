@@ -1,0 +1,21 @@
+{
+  "name": "@yyb/dsh-box-update",
+  "description": "DSH-box 更新入口：在 设置 → 插件 中提供检查更新与前往下载",
+  "version": "0.1.2",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

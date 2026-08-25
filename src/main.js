@@ -1,8 +1,11 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const { spawn } = require('child_process')
 const http = require('http')
+const https = require('https')
 const path = require('path')
 const fs = require('fs')
+
+const RELEASES_URL = 'https://github.com/d2j2mc5rjw-droid/DSH-box/releases/latest'
 
 const PORT = 3080
 const BASE_URL = `http://127.0.0.1:${PORT}`
@@ -131,6 +134,7 @@ function createMain() {
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
+      preload: path.join(__dirname, 'bridge.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -183,13 +187,95 @@ if (!gotLock) {
     if (mainWin && !mainWin.isDestroyed()) {
       if (mainWin.isMinimized()) mainWin.restore()
       mainWin.focus()
-    } else {
+    } else if (!quitting) {
       createMain()
     }
   })
 
+  // ---- 更新插件：安装到用户数据目录（缺失或版本不同才覆盖） ----
+  function installBoxUpdatePlugin() {
+    try {
+      const src = app.isPackaged
+        ? path.join(process.resourcesPath, 'box-update-plugin')
+        : path.join(app.getAppPath(), 'vendor', 'dsh-box-update-plugin')
+      const dest = path.join(app.getPath('home'), '.dsh', 'plugins', '@yyb', 'dsh-box-update')
+      if (!fs.existsSync(src)) return
+      const verOf = (p) => { try { return JSON.parse(fs.readFileSync(path.join(p, 'package.json'))).version } catch { return null } }
+      if (verOf(dest) === verOf(src)) return
+      fs.rmSync(dest, { recursive: true, force: true })
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      fs.cpSync(src, dest, { recursive: true })
+      log(`更新插件已安装 -> ${dest}`)
+    } catch (e) { log(`安装更新插件失败: ${e.message}`) }
+  }
+
+  ipcMain.on('dsh-box:version', (e) => { e.returnValue = app.getVersion() })
+
+  function httpsGetJsonViaProxy(proxyUrl, options) {
+    return new Promise((resolve, reject) => {
+      const proxy = new URL(proxyUrl)
+      const req = http.request({
+        host: proxy.hostname, port: proxy.port || 80,
+        method: 'CONNECT', path: `${options.host}:443`,
+        headers: { Host: `${options.host}:443` },
+      })
+      req.on('connect', (res, socket) => {
+        if (res.statusCode !== 200) return reject(new Error(`proxy ${res.statusCode}`))
+        const tlsReq = https.request({ ...options, createConnection: () => require('tls').connect({ socket, servername: options.host }) }, (r2) => {
+          let b = ''
+          r2.on('data', (d) => { b += d })
+          r2.on('end', () => { try { resolve(JSON.parse(b)) } catch (e2) { reject(e2) } })
+        })
+        tlsReq.on('error', reject)
+        tlsReq.end()
+      })
+      req.on('error', reject)
+      req.end()
+    })
+  }
+
+  function httpsGetJson(options) {
+    return new Promise((resolve, reject) => {
+      const req = https.get(options, (res) => {
+        let b = ''
+        res.on('data', (d) => { b += d })
+        res.on('end', () => { try { resolve(JSON.parse(b)) } catch (e) { reject(e) } })
+      })
+      req.on('error', reject)
+      req.setTimeout(8000, () => req.destroy(new Error('timeout')))
+    })
+  }
+
+  ipcMain.handle('dsh-box:check-update', async () => {
+    const opts = {
+      host: 'api.github.com',
+      path: '/repos/d2j2mc5rjw-droid/DSH-box/releases/latest',
+      headers: { 'User-Agent': 'DSH-box', Accept: 'application/vnd.github+json' },
+    }
+    try {
+      const rel = await httpsGetJson(opts)
+      return { current: app.getVersion(), latest: String(rel.tag_name || '').replace(/^v/, ''), url: rel.html_url }
+    } catch (directErr) {
+      const proxy = process.env.HTTPS_PROXY || process.env.https_proxy
+      if (proxy) {
+        try {
+          const rel = await httpsGetJsonViaProxy(proxy, opts)
+          return { current: app.getVersion(), latest: String(rel.tag_name || '').replace(/^v/, ''), url: rel.html_url }
+        } catch {}
+      }
+      log(`检查更新失败: ${directErr.message}`)
+      return { error: '网络不可用，稍后再试' }
+    }
+  })
+
+  ipcMain.handle('dsh-box:open-releases', async () => {
+    await shell.openExternal(RELEASES_URL)
+    return true
+  })
+
   app.whenReady().then(() => {
     log('app ready，创建启动窗口')
+    installBoxUpdatePlugin()
     createSplash()
     bootstrap()
   })

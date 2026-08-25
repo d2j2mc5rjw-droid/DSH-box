@@ -1,7 +1,7 @@
 {
   "name": "dsh-box",
   "productName": "DSH-box",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DeepSeek Harness in Box — standalone desktop app for the DeepSeek Harness agent UI",
   "main": "src/main.js",
   "author": "yyb <d2j2mc5rjw-droid@users.noreply.github.com>",
@@ -31,6 +31,10 @@
       {
         "from": "build/icon.icns",
         "to": "icon.icns"
+      },
+      {
+        "from": "vendor/dsh-box-update-plugin",
+        "to": "box-update-plugin"
       }
     ],
     "mac": {

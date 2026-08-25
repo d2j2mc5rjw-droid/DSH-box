@@ -46,7 +46,7 @@ jobs:
         working-directory: dsh-src
         run: |
           corepack pnpm install --no-frozen-lockfile
-          corepack pnpm run build
+          corepack pnpm run build:official
 
       - name: Deploy production harness tree
         run: corepack pnpm --filter @deepseek-ai/dsh deploy --prod --legacy resources/harness
