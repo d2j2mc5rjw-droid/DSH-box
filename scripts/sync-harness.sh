@@ -23,7 +23,7 @@ echo "==> 部署完成 ($(du -sh "$DEST" | cut -f1))，在沙箱副本中收敛�
 # 在与打包环境等价的中立位置收敛（避免部署树依赖源仓库的相对符号链接）
 SANDBOX="$(mktemp -d /tmp/dsh-box-sandbox.XXXXXX)"
 cp -R "$DEST" "$SANDBOX/harness"
-if zsh "$ROOT/scripts/fixup-harness.zsh" "$SRC" "$SANDBOX/harness"; then
+if node "$ROOT/scripts/fixup-harness.mjs" "$SRC" "$SANDBOX/harness"; then
   rm -rf "$DEST"
   mv "$SANDBOX/harness" "$DEST"
   echo "==> 沙箱验证通过，已换入 $DEST"
