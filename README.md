@@ -85,6 +85,23 @@ npm run sync:harness
 - 应用未做 Apple 公证（个人项目），首次打开需手动放行
 - Windows/Linux 包由 CI 构建，内核为上游官方版本 + 本仓库自带插件补丁
 
+## 🛠️ 故障排查
+
+**界面提示 `Failed to load plugins … requires options.key`**
+
+第三方市场插件（如 `dsh-client-ui-aqua` ≤ 1.1.0）基于旧版核心 API 构建，
+新版 keyed slot 必须传 `key`。修复方式任选：
+
+```sh
+# 方式一：升级该插件到兼容新核心的版本
+dsh plugin upgrade @deepseek-ai/dsh-client-ui-aqua
+
+# 方式二：临时移除
+rm -rf ~/.dsh/plugins/@deepseek-ai/dsh-client-ui-aqua
+```
+
+内核运行日志：`~/Library/Logs/DSH-box/dsh-box.log`
+
 ## 📄 许可证
 
 [MIT](LICENSE)。本应用仅为社区独立打包，与 DeepSeek AI 官方无关；
