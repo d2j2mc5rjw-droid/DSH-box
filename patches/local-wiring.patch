@@ -1,0 +1,58 @@
+diff --git a/packages/bundle/base/cordis.patch.yml b/packages/bundle/base/cordis.patch.yml
+index e9567d9206..1dde82c365 100644
+--- a/packages/bundle/base/cordis.patch.yml
++++ b/packages/bundle/base/cordis.patch.yml
+@@ -449,3 +449,18 @@
+     # choice.
+     - id: llm-deepseek
+       name: '@deepseek-ai/dsh-llm-deepseek'
++
++    # The web-edition DeepSeek adapter (chat.deepseek.com): no API key — the
++    # route resolves a captured browser login (storageStatePath) or a session
++    # token per request and speaks the web app's internal protocol. Registered
++    # at load like the official adapter; requests fail with a clear
++    # MISSING_CREDENTIAL until `llm-deepseek-web:` settings configure a session.
++    - id: llm-deepseek-web
++      name: '@deepseek-ai/dsh-llm-deepseek-web'
++
++    # The local Ollama adapter. No key or endpoint is inlined: the server root
++    # resolves per request from the `llm-ollama:` settings section over this entry
++    # (defaults to http://localhost:11434), and the model catalog comes from
++    # `/api/tags` unless a static `models` list is supplied.
++    - id: llm-ollama
++      name: '@deepseek-ai/dsh-llm-ollama'
+diff --git a/packages/bundle/base/package.json b/packages/bundle/base/package.json
+index 706ee3202a..2502fc958e 100644
+--- a/packages/bundle/base/package.json
++++ b/packages/bundle/base/package.json
+@@ -62,6 +62,7 @@
+     "@deepseek-ai/dsh-api-gateway": "workspace:^",
+     "@deepseek-ai/dsh-llm": "workspace:^",
+     "@deepseek-ai/dsh-llm-deepseek": "workspace:^",
++    "@deepseek-ai/dsh-llm-ollama": "workspace:^",
+     "@deepseek-ai/dsh-llm-pi-ai": "workspace:^",
+     "@deepseek-ai/dsh-llm-retry": "workspace:^",
+     "@deepseek-ai/dsh-permission-presets": "workspace:^",
+@@ -115,7 +116,8 @@
+     "@deepseek-ai/dsh-web": "workspace:^",
+     "@deepseek-ai/dsh-web-search-deepseek": "workspace:^",
+     "@deepseek-ai/dsh-workflow-worker-thread": "workspace:^",
+-    "@deepseek-ai/dsh-agent-instructions": "workspace:^"
++    "@deepseek-ai/dsh-agent-instructions": "workspace:^",
++    "@deepseek-ai/dsh-llm-deepseek-web": "workspace:^"
+   },
+   "peerDependencies": {
+     "@deepseek-ai/dsh-invariants": "workspace:^",
+diff --git a/tsconfig.host.json b/tsconfig.host.json
+index 459036247a..3fed8d038d 100644
+--- a/tsconfig.host.json
++++ b/tsconfig.host.json
+@@ -200,6 +200,8 @@
+     { "path": "./packages/code-runtime/code-runtime" },
+     { "path": "./packages/code-runtime/code-runtime-worker-thread" },
+     { "path": "./packages/llm/llm-deepseek" },
++    { "path": "./packages/llm/llm-deepseek-web" },
++    { "path": "./packages/llm/llm-ollama" },
+     { "path": "./packages/llm/llm-pi-ai" },
+     { "path": "./packages/shell/bash-local" },
+     { "path": "./packages/shell/shell-env" },

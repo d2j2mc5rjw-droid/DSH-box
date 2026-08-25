@@ -1,0 +1,6 @@
+node_modules/
+resources/harness/
+release/
+dist/
+*.log
+.DS_Store

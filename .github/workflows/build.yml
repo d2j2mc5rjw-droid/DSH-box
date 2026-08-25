@@ -1,0 +1,87 @@
+name: Build DSH-box
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DSH_REF: dsh-v0.1.1-rc.2
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13 # Intel
+          - os: macos-14 # Apple Silicon
+          - os: windows-latest
+          - os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Checkout DeepSeek Harness source
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: ${{ env.DSH_REF }}
+          path: dsh-src
+
+      - name: Wire custom LLM plugins into harness
+        run: node scripts/apply-wiring.mjs dsh-src
+
+      - name: Install & build harness
+        working-directory: dsh-src
+        run: |
+          corepack pnpm install
+          corepack pnpm run build
+
+      - name: Deploy production harness tree
+        run: corepack pnpm --filter @deepseek-ai/dsh deploy --prod --legacy resources/harness
+        working-directory: dsh-src
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Build desktop app
+        run: npx electron-builder --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSH-box-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**
+          generate_release_notes: true

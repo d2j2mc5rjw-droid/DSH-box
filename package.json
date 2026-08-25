@@ -1,0 +1,57 @@
+{
+  "name": "dsh-box",
+  "productName": "DSH-box",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness in Box — standalone desktop app for the DeepSeek Harness agent UI",
+  "main": "src/main.js",
+  "author": "yyb <d2j2mc5rjw-droid@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d2j2mc5rjw-droid/DSH-box.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac",
+    "dist:dir": "electron-builder --mac --dir",
+    "sync:harness": "zsh scripts/sync-harness.sh"
+  },
+  "build": {
+    "appId": "com.yyb.dsh-box",
+    "productName": "DSH-box",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/harness",
+        "to": "harness"
+      },
+      {
+        "from": "build/icon.icns",
+        "to": "icon.icns"
+      }
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "identity": null,
+      "category": "public.app-category.developer-tools"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
+  }
+}
