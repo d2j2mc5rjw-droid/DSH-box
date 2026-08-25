@@ -45,6 +45,7 @@ jobs:
       - name: Install & build harness
         working-directory: dsh-src
         run: |
+          export DSH_CLIENT_COMMIT_HASH=$(git rev-parse --short HEAD)
           corepack pnpm install --no-frozen-lockfile
           corepack pnpm run build:official
 
